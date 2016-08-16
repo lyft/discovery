@@ -1,9 +1,8 @@
 import unittest
 import json
 
-import app
-import app.routes.api
-from app.models.host import Host
+from discovery import app
+from discovery.app.models.host import Host
 
 
 class FlaskResourceTestCase(unittest.TestCase):
