@@ -1,10 +1,10 @@
 import unittest
 from flask import Flask
 from flask.ext.cache import Cache
-from app.resources.api import RepoRegistration, Registration
+from discovery.app.models import Host
+from discovery.app.resources.api import RepoRegistration, Registration
 from mock import patch
 from mock import Mock
-from app.models.host import Host
 
 
 class ApiResourceTestCase(unittest.TestCase):
@@ -44,7 +44,7 @@ class ApiResourceTestCase(unittest.TestCase):
         assert response_code == 200
         assert response == expected
 
-    @patch('app.services.host.HostService.list')
+    @patch('discovery.app.services.host.HostService.list')
     def test_get_with_hosts(self, get_hosts):
         expected_hosts = [
             {
@@ -95,7 +95,7 @@ class ApiResourceTestCase(unittest.TestCase):
         assert response_code == 200
         assert response == expected
 
-    @patch('app.services.host.HostService.list_by_service_repo_name')
+    @patch('discovery.app.services.host.HostService.list_by_service_repo_name')
     def test_get_service_repo_name_with_hosts(self, get_hosts):
         expected_hosts = [
             {
@@ -136,7 +136,7 @@ class ApiResourceTestCase(unittest.TestCase):
         assert response_code == 200
         assert response == expected
 
-    @patch('app.resources.api.Registration._get_param')
+    @patch('discovery.app.resources.api.Registration._get_param')
     def test_post_invalid_params(self, get_param):
         get_param.return_value = '0'
         registration = Registration()

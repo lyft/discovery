@@ -3,7 +3,7 @@ from mock import patch, call, Mock, MagicMock
 from flask import Flask
 from flask.ext.cache import Cache
 from datetime import datetime, timedelta
-from app.services.host import HostService
+from discovery.app.services.host import HostService
 
 
 class HostServiceTestCase(unittest.TestCase):
@@ -21,8 +21,8 @@ class HostServiceTestCase(unittest.TestCase):
     def _generate_valid_tags(self):
         return {'az': 'foo', 'instance_id': 'bar', 'region': 'baz'}
 
-    @patch('app.models.host.Host.get')
-    @patch('app.models.host.Host.save')
+    @patch('discovery.app.models.host.Host.get')
+    @patch('discovery.app.models.host.Host.save')
     def test_update_succeeds(self, save, get):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
@@ -51,8 +51,8 @@ class HostServiceTestCase(unittest.TestCase):
         )
         assert success is True
 
-    @patch('app.models.host.Host.get')
-    @patch('app.models.host.Host.save')
+    @patch('discovery.app.models.host.Host.get')
+    @patch('discovery.app.models.host.Host.save')
     def test_update_invalid_ip(self, save, get):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
@@ -78,8 +78,8 @@ class HostServiceTestCase(unittest.TestCase):
         )
         assert success is False
 
-    @patch('app.models.host.Host.get')
-    @patch('app.models.host.Host.save')
+    @patch('discovery.app.models.host.Host.get')
+    @patch('discovery.app.models.host.Host.save')
     def test_update_invalid_port(self, save, get):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
@@ -108,8 +108,8 @@ class HostServiceTestCase(unittest.TestCase):
         )
         assert success is False
 
-    @patch('app.models.host.Host.get')
-    @patch('app.models.host.Host.save')
+    @patch('discovery.app.models.host.Host.get')
+    @patch('discovery.app.models.host.Host.save')
     def test_update_invalid_last_check_in(self, save, get):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
@@ -126,8 +126,8 @@ class HostServiceTestCase(unittest.TestCase):
         )
         assert success is False
 
-    @patch('app.models.host.Host.get')
-    @patch('app.models.host.Host.save')
+    @patch('discovery.app.models.host.Host.get')
+    @patch('discovery.app.models.host.Host.save')
     def test_update_invalid_tags(self, save, get):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
@@ -168,8 +168,8 @@ class HostServiceTestCase(unittest.TestCase):
         )
         assert success is False
 
-    @patch('app.models.host.Host.query')
-    @patch('app.services.host.HostService._is_expired')
+    @patch('discovery.app.models.host.Host.query')
+    @patch('discovery.app.services.host.HostService._is_expired')
     def test_list(self, expired, query):
         self.app.cache = Cache(self.app, config={'CACHE_TYPE': 'null'})
         service = 'foo'
@@ -224,8 +224,8 @@ class HostServiceTestCase(unittest.TestCase):
         ]
         assert hosts == expected
 
-    @patch('app.models.host.Host.service_repo_name_index.query')
-    @patch('app.services.host.HostService._is_expired')
+    @patch('discovery.app.models.host.Host.service_repo_name_index.query')
+    @patch('discovery.app.services.host.HostService._is_expired')
     def test_list_by_service_repo_name(self, expired, query):
         self.app.cache = Cache(self.app, config={'CACHE_TYPE': 'null'})
         service = 'foo'
@@ -281,7 +281,7 @@ class HostServiceTestCase(unittest.TestCase):
         ]
         assert hosts == expected
 
-    @patch('app.models.host.Host.get')
+    @patch('discovery.app.models.host.Host.get')
     def test_set_tag(self, get):
         host = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
         host.save.return_value = Mock(spec=bool)
@@ -299,8 +299,8 @@ class HostServiceTestCase(unittest.TestCase):
         assert host.tags == {'tagname': 'value'}
         host.save.assert_called_once()
 
-    @patch('app.models.host.Host.batch_write')
-    @patch('app.models.host.Host.query')
+    @patch('discovery.app.models.host.Host.batch_write')
+    @patch('discovery.app.models.host.Host.query')
     def test_set_tag_all(self, query, batch_write):
         enter = MagicMock()
         ctx_manager = MagicMock()
@@ -329,7 +329,7 @@ class HostServiceTestCase(unittest.TestCase):
     def noop(self):
         pass
 
-    @patch('app.models.host.Host.query')
+    @patch('discovery.app.models.host.Host.query')
     def test_sweeper(self, query):
         # have query return hosts, some of which are expired
         # verify that the expired hosts are not returned

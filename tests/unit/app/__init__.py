@@ -1,4 +1,4 @@
-from app.models.host import Host
+from discovery.app.models.host import Host
 
 
 def setup():

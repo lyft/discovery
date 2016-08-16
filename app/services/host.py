@@ -6,7 +6,7 @@ import pytz
 from flask import current_app as app
 from flask import request
 
-from app.stats import get_stats
+from ..stats import get_stats
 from .. import settings
 from ..models.host import Host
 

@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import request
 from flask.ext.restful import Resource
 
-from app.stats import get_stats
+from ..stats import get_stats
 from .. import settings
 from ..services import host
 from ..models.host import Host
