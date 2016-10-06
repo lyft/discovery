@@ -1,18 +1,32 @@
-import logging
-import socket
 import datetime
+import logging
 import pytz
+import query
+import socket
 
 from flask import current_app as app
 from flask import request
 
 from ..stats import get_stats
 from .. import settings
-from ..models.host import Host
 
 
 class HostService():
     '''Provides methods for querying for hosts'''
+
+    def __init__(self, query_backend=query.DynamoQueryBackend()):
+        self.query_backend = query_backend
+
+    def _sweep_expired_hosts(self, hosts):
+        _hosts = []
+        for host in hosts:
+            if self._is_expired(host):
+                statsd = get_stats('service.host')
+                self.query_backend.delete(host['service'], host['ip_address'])
+                statsd.incr("sweep.%s" % host['service'])
+            else:
+                _hosts.append(host)
+        return _hosts
 
     def list(self, service):
         '''Returns a json list of hosts for that service.  Caches host lists per service with a TTL'''
@@ -20,8 +34,7 @@ class HostService():
         if cached_hosts:
             return cached_hosts
 
-        cursor = Host.query(service)
-        hosts = self._hosts_from_pynamo_cursor(cursor)
+        hosts = self._sweep_expired_hosts(self.query_backend.query(service))
         app.cache.set(service, hosts, settings.CACHE_TTL)
         return hosts
 
@@ -30,9 +43,7 @@ class HostService():
         # Currently we don't cache calls that lookup via service_repo_name since the only
         # user is low rate and check.py. If we ever want caching on this call, we have to use
         # a separate cache from above or prepend a prefix since otherwise it will stomp.
-        cursor = Host.service_repo_name_index.query(service_repo_name)
-        hosts = self._hosts_from_pynamo_cursor(cursor)
-        return hosts
+        return self._sweep_expired_hosts(self.query_backend.query_secondary_index(service_repo_name))
 
     def update(self, service, ip_address, service_repo_name, port, revision, last_check_in, tags):
         '''Updates the service registration entry for one host. Returns True on success, False on failure'''
@@ -90,9 +101,10 @@ class HostService():
         return True
 
     def set_tag(self, service, ip_address, tag_name, tag_value):
-        host = Host.get(service, ip_address)
-        host.tags[tag_name] = tag_value
-        host.save()
+        # TODO note that we never sweep when we do a get... is that an error?
+        host = self.query_backend.get(service, ip_address)
+        host['tags'][tag_name] = tag_value
+        self.query_backend.put(host)
 
     def set_tag_all(self, service, tag_name, tag_value):
         """Sets a tag on all hosts for the given service.
@@ -109,11 +121,12 @@ class HostService():
         individual field. This should be OK in practice as the time frame is
         short and the next host update will return things to normal.
         """
-        with Host.batch_write() as batch:
-            for host in list(Host.query(service)):
-                if host.tags.get(tag_name) != tag_value:
-                    host.tags[tag_name] = tag_value
-                    batch.save(host)
+        to_put = []
+        for host in self.query_backend.query(service):
+            if host['tags'].get(tag_name) != tag_value:
+                host['tags'][tag_name] = tag_value
+                to_put.append(host)
+        self.query_backend.batch_put(to_put)
 
     def delete(self, service, ip_address):
         '''Attempts to delete the host.  Returns a boolean indicating success or failure'''
@@ -129,39 +142,10 @@ class HostService():
             logging.error("Delete: Invalid ip address")
             return False
 
-        statsd = get_stats('service.host')
-        cursor = Host.query(service, ip_address__eq=ip_address)
-        host = None
-        try:
-            host = cursor.next()
-        except StopIteration:
-            logging.error(
-                "Delete called for nonexistent host: service=%s ip=%s" % (service, ip_address)
-            )
-            return False
-
-        try:
-            cursor.next()
-            logging.error(
-                "Returned more than 1 result for query %s %s.  Aborting the delete"
-                % (service, ip_address)
-            )
-            return False
-        except StopIteration:
-            host.delete()
-            statsd.incr("delete.%s" % service)
-            return True
-
-    def _sweep_host(self, host):
-        '''
-        Removes the host from the database. Used by the sweeper to remove expired hosts
-        '''
-        statsd = get_stats('service.host')
-        host.delete()
-        statsd.incr("sweep.%s" % host.service)
+        self.query_backend.delete(service, ip_address)
 
     def _is_expired(self, host):
-        last_check_in = host.last_check_in
+        last_check_in = host['last_check_in']
         now = datetime.datetime.now()
 
         if not last_check_in.tzinfo:
@@ -174,7 +158,7 @@ class HostService():
         if time_elapsed > settings.HOST_TTL:
             logging.info(
                 "Expiring host %s for service %s because %d seconds have elapsed since last_checkin"
-                % (host.tags['instance_id'], host.service, time_elapsed)
+                % (host['tags']['instance_id'], host['service'], time_elapsed)
                 )
             return True
         else:
@@ -184,33 +168,24 @@ class HostService():
         '''
         Create a new dynamo host entry or update an existing entry
         '''
-        try:
-            host = Host.get(service, ip_address)
-            host.service_repo_name = service_repo_name
-            host.port = port
-            host.revision = revision
-            host.last_check_in = last_check_in
-            host.tags.update(tags)
-        except Host.DoesNotExist:
-            host = Host(
-                service,
-                ip_address=ip_address,
-                service_repo_name=service_repo_name,
-                port=port,
-                revision=revision,
-                last_check_in=last_check_in,
-                tags=tags
-            )
-        host.save()
-
-    def _hosts_from_pynamo_cursor(self, cursor):
-        hosts = []
-        for entry in cursor:
-            if self._is_expired(entry):
-                self._sweep_host(entry)
-            else:
-                hosts.append(self._pynamo_host_to_dict(entry))
-        return hosts
+        host = self.query_backend.get(service, ip_address)
+        if host is None:
+            host = {
+                'service': service,
+                'ip_address': ip_address,
+                'service_repo_name': service_repo_name,
+                'port': port,
+                'revision': revision,
+                'last_check_in': last_check_in,
+                'tags': tags
+            }
+        else:
+            host['service_repo_name'] = service_repo_name
+            host['port'] = port
+            host['revision'] = revision
+            host['last_check_in'] = last_check_in
+            host['tags'].update(tags)
+        self.query_backend.put(host)
 
     def _is_valid_ip(self, ip_str):
         '''
@@ -222,14 +197,3 @@ class HostService():
         except socket.error:
             pass
         return False
-
-    def _pynamo_host_to_dict(self, entry):
-        host = {}
-        host['service'] = entry.service
-        host['ip_address'] = entry.ip_address
-        host['service_repo_name'] = entry.service_repo_name
-        host['port'] = entry.port
-        host['revision'] = entry.revision
-        host['last_check_in'] = str(entry.last_check_in)
-        host['tags'] = entry.tags
-        return host
