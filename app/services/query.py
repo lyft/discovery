@@ -21,33 +21,87 @@ class QueryBackend(object):
 
         Note that this will NOT deal with how timing out entries -- that is
         a concern of the caller.
+
+        :param service: service of the hosts to retrieve
+
+        :type service: str
+
+        :returns: hosts associated with this service
+        :rtype: list(dict)
         '''
         pass
 
     @abc.abstractmethod
     def query_secondary_index(self, service_repo_name):
-        '''For backends that support secondary indices, allows more efficient querying'''
+        '''For backends that support secondary indices, allows more efficient querying.
+
+        :param service_repo_name: service_repo_name to retrieve associated hosts for
+
+        :type service_repo_name: str
+
+        :returns: hosts associated with this service_repo_name
+        :rtype: list(dict)
+        '''
         pass
 
     @abc.abstractmethod
     def get(self, service, ip_address):
-        '''Returns a single value for the given service/ip_address, if one exists, None otherwise'''
+        '''Fetches the single host associated with the given service and ip_address
+
+        :param service: the service of the host to get
+        :param ip_address: the ip_address of the host to get
+
+        :type service: str
+        :type ip_address: str
+
+        :returns: a single host if one exists, None otherwise
+        :rtype: dict
+        '''
         pass
 
     @abc.abstractmethod
     def put(self, host):
-        '''Attempts to store the given host'''
+        '''Attempts to store the given host
+
+        :param host: host entry to store
+
+        :type host: dict
+
+        :returns: True if put successful, False otherwise
+        :rtype: bool
+        '''
         pass
 
     @abc.abstractmethod
     def delete(self, service, ip_address):
-        '''Deletes the given host for the given service/ip_address, returning True if successful'''
+        '''Deletes the given host for the given service/ip_address
+
+        :param service: the service of the host to delete
+        :param ip_address: the ip_address of the host to delete
+
+        :type service: str
+        :type ip_address: str
+
+        :returns: True if delete successful, False otherwise
+        :rtype: bool
+        '''
         pass
 
     def batch_put(self, hosts):
-        '''Batch write interface for backends which support more efficient batch storing methods'''
-        for host in hosts:
-            self.store(host)
+        '''Batch write interface for backends which support more efficient batch storing methods.
+
+        Note: even for backends that support this, do NOT assume that it is atomic! That depends on
+        the backend, but is not a semantic enforced by this API. If this fails, it is possible that
+        some values have been partially written. This needs to be handled by the caller.
+
+        :param hosts: list of host dicts to write
+
+        :type hosts: list(dict)
+
+        :returns: True if all writes successful, False if 1 or more fail
+        :rtype: bool
+        '''
+        return all(map(self.store, hosts))
 
 
 # TODO need to factor out the statsd dep
@@ -56,6 +110,7 @@ class MemoryQueryBackend(QueryBackend):
         self.data = {}
 
     def _list_all(self):
+        '''A generator over every host that has been stored.'''
         for service in self.data.keys():
             for r in self.query(service):
                 yield r
@@ -106,6 +161,7 @@ class MemoryQueryBackend(QueryBackend):
         del host_dict['ip_address']
 
         ip_map[ip_address] = host_dict
+        return True
 
     def delete(self, service, ip_address):
         ip_map = self.data.get(service)
@@ -130,6 +186,7 @@ class LocalFileQueryBackend(QueryBackend):
             self.backend.data = pickle.load(open(self.file))
 
     def _save(self):
+        '''Saves the data information to local file.'''
         pickle.dump(self.backend.data, open(self.file, 'w'))
 
     def query(self, service):
@@ -142,12 +199,16 @@ class LocalFileQueryBackend(QueryBackend):
         return self.backend.get(service, ip_address)
 
     def put(self, host):
-        self.backend.put(host)
-        self._save()
+        try:
+            return self.backend.put(host)
+        finally:
+            self._save()
 
     def delete(self, service, ip_address):
-        self.backend.delete(service, ip_address)
-        self._save()
+        try:
+            return self.backend.delete(service, ip_address)
+        finally:
+            self._save()
 
 
 class DynamoQueryBackend(QueryBackend):
@@ -170,9 +231,25 @@ class DynamoQueryBackend(QueryBackend):
         self._dict_to_pynamo_host(host).save()
 
     def batch_put(self, hosts):
+        '''
+        Note! Batched writes in pynamo are NOT ATOMIC. Batch writes are
+        done in groups of 25 with pynamo handling retries for partial failures
+        in a batch. It's possible that retries can be exhausted and we could
+        end up in a state where some weights were written and others weren't,
+        so external users should always ensure that weights were all
+        propagated and explicitly retry if not.
+
+        It's also possible that we're overriding newer data from hosts since
+        we're putting the whole host object rather than just updating an
+        individual field. This should be OK in practice as the time frame is
+        short and the next host update will return things to normal.
+        '''
+
+        # TODO need to look at the exceptions dynamo can throw here, catch, return False
         with Host.batch_write() as batch:
             for host in hosts:
                 batch.save(self._dict_to_pynamo_host(host))
+        return True
 
     # TODO is all of this pomp and circumstance really necessary to properly delete?
     #      need to better understand dynamodb
@@ -191,15 +268,33 @@ class DynamoQueryBackend(QueryBackend):
             )
             return False
         else:
-            hosts[0].delete()
+            self._dict_to_pynamo_host(hosts[0]).delete()
             statsd.incr("delete.%s" % service)
             return True
 
     def _read_cursor(self, cursor):
+        '''Converts a pynamo cursor into a generator.
+
+        :param cursor: pynamo cursor
+
+        :type cursor: TODO dig it up, some pynamo nonsense
+
+        :returns: generator based on the cursor
+        :retype: generator(dict)
+        '''
         for host in cursor:
             yield self._pynamo_host_to_dict(host)
 
     def _pynamo_host_to_dict(self, host):
+        '''Converts a pynamo host into a dict.
+
+        :param host: pynamo host
+
+        :type host: Host
+
+        :returns: dictionary with host info
+        :rtype: dict
+        '''
         _host = {}
         _host['service'] = host.service
         _host['ip_address'] = host.ip_address
@@ -211,6 +306,17 @@ class DynamoQueryBackend(QueryBackend):
         return _host
 
     def _dict_to_pynamo_host(self, host):
+        '''Converts a dict to a pynamo host.
+
+        Note that if any keys are missing, there will be an error.
+
+        :param host: dict with host info
+
+        :type host: dict
+
+        :returns: pynamo Host
+        :rtype: Host
+        '''
         return Host(service=host['service'],
                     ip_address=host['ip_address'],
                     service_repo_name=host['service_repo_name'],
