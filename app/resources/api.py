@@ -113,13 +113,9 @@ class LoadBalancing(Resource):
         host_service = host.HostService()
 
         if ip_address:
-            try:
-                host_service.set_tag(
-                    service, ip_address, 'load_balancing_weight', weight)
-            except Host.DoesNotExist:
+            if not host_service.set_tag(service, ip_address, 'load_balancing_weight', weight):
                 return {"error": "Host not found"}, 404
         else:
-            host_service.set_tag_all(
-                service, 'load_balancing_weight', weight)
+            host_service.set_tag_all(service, 'load_balancing_weight', weight)
 
         return "", 204
