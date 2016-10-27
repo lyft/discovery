@@ -8,7 +8,6 @@ from flask.ext.restful import Resource
 from ..stats import get_stats
 from .. import settings
 from ..services import host
-from ..models.host import Host
 
 logger = logging.getLogger('resources.api')
 logging.basicConfig(level=logging.DEBUG,
