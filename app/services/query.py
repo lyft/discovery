@@ -301,7 +301,7 @@ class DynamoQueryBackend(QueryBackend):
         _host['service_repo_name'] = host.service_repo_name
         _host['port'] = host.port
         _host['revision'] = host.revision
-        _host['last_check_in'] = host.last_check_in
+        _host['last_check_in'] = str(host.last_check_in)
         _host['tags'] = host.tags
         return _host
 
