@@ -14,6 +14,25 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)s: %(levelname)s %(message)s')
 
 
+class HostSerializer(object):
+
+    @staticmethod
+    def serialize(hosts):
+        '''Makes host dictionary serializable
+
+        :param hosts: list of hosts, each host is defined by dict host info
+        :type hosts: dict
+
+        :returns: list of host info dictionaries
+        :rtype: list of dict
+        '''
+
+        for _host in hosts:
+            _host['last_check_in'] = str(_host['last_check_in'])
+
+        return hosts
+
+
 class Registration(Resource):
 
     def get(self, service):
@@ -23,7 +42,7 @@ class Registration(Resource):
         response = {
             'service': service,
             'env': settings.APPLICATION_ENV,
-            'hosts': hosts
+            'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
 
@@ -88,7 +107,7 @@ class RepoRegistration(Resource):
         response = {
             'service_repo_name': service_repo_name,
             'env': settings.APPLICATION_ENV,
-            'hosts': hosts
+            'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
 
