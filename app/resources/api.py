@@ -8,11 +8,29 @@ from flask.ext.restful import Resource
 from ..stats import get_stats
 from .. import settings
 from ..services import host
-from ..models.host import Host
 
 logger = logging.getLogger('resources.api')
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)s: %(levelname)s %(message)s')
+
+
+class HostSerializer(object):
+
+    @staticmethod
+    def serialize(hosts):
+        '''Makes host dictionary serializable
+
+        :param hosts: list of hosts, each host is defined by dict host info
+        :type hosts: dict
+
+        :returns: list of host info dictionaries
+        :rtype: list of dict
+        '''
+
+        for _host in hosts:
+            _host['last_check_in'] = str(_host['last_check_in'])
+
+        return hosts
 
 
 class Registration(Resource):
@@ -24,7 +42,7 @@ class Registration(Resource):
         response = {
             'service': service,
             'env': settings.APPLICATION_ENV,
-            'hosts': hosts
+            'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
 
@@ -89,7 +107,7 @@ class RepoRegistration(Resource):
         response = {
             'service_repo_name': service_repo_name,
             'env': settings.APPLICATION_ENV,
-            'hosts': hosts
+            'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
 
@@ -113,13 +131,9 @@ class LoadBalancing(Resource):
         host_service = host.HostService()
 
         if ip_address:
-            try:
-                host_service.set_tag(
-                    service, ip_address, 'load_balancing_weight', weight)
-            except Host.DoesNotExist:
+            if not host_service.set_tag(service, ip_address, 'load_balancing_weight', weight):
                 return {"error": "Host not found"}, 404
         else:
-            host_service.set_tag_all(
-                service, 'load_balancing_weight', weight)
+            host_service.set_tag_all(service, 'load_balancing_weight', weight)
 
         return "", 204

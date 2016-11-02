@@ -1,18 +1,20 @@
 import unittest
-from mock import patch, call, Mock, MagicMock
+from mock import patch, Mock, MagicMock
 from flask import Flask
 from flask.ext.cache import Cache
 from datetime import datetime, timedelta
-from discovery.app.services.host import HostService
+from discovery.app.services import host
 
 
-class HostServiceTestCase(unittest.TestCase):
+# TODO should also have a class that tests the HostService semantics without
+#      relying on mocking the underlying implementation
+class DynamoHostServiceTestCase(unittest.TestCase):
     def setUp(self):
-            self.app = Flask(__name__)
-            self.app.cache = Cache(self.app, config={'CACHE_TYPE': 'simple'})
-            self.app.cache.clear()
-            self.app_context = self.app.app_context()
-            self.app_context.push()
+        self.app = Flask(__name__)
+        self.app.cache = Cache(self.app, config={'CACHE_TYPE': 'simple'})
+        self.app.cache.clear()
+        self.app_context = self.app.app_context()
+        self.app_context.push()
 
     def tearDown(self):
         self.app.cache.clear()
@@ -21,12 +23,19 @@ class HostServiceTestCase(unittest.TestCase):
     def _generate_valid_tags(self):
         return {'az': 'foo', 'instance_id': 'bar', 'region': 'baz'}
 
+    def _mock_host(self):
+        return Mock(spec=['service', 'ip_address', 'service_repo_name', 'port',
+                          'revision', 'last_check_in', 'tags', 'save'])
+
+    def _new_host_service(self):
+        return host.HostService()
+
     @patch('discovery.app.models.host.Host.get')
     @patch('discovery.app.models.host.Host.save')
     def test_update_succeeds(self, save, get):
         save.return_value = Mock(spec=bool)
-        get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
-        host = HostService()
+        get.return_value = self._mock_host()
+        host = self._new_host_service()
         success = host.update(
             service='foo',
             ip_address='10.10.10.10',
@@ -38,8 +47,12 @@ class HostServiceTestCase(unittest.TestCase):
         )
         assert success is True
 
-    def test_service_repo_name_optional(self):
-        host = HostService()
+    @patch('discovery.app.models.host.Host.get')
+    @patch('discovery.app.models.host.Host.save')
+    def test_service_repo_name_optional(self, save, get):
+        save.return_value = Mock(spec=bool)
+        get.return_value = None
+        host = self._new_host_service()
         success = host.update(
             service='foo',
             ip_address='10.10.10.10',
@@ -56,7 +69,7 @@ class HostServiceTestCase(unittest.TestCase):
     def test_update_invalid_ip(self, save, get):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
-        host = HostService()
+        host = self._new_host_service()
         success = host.update(
             service='foo',
             ip_address='invalid.ip.address',
@@ -85,7 +98,7 @@ class HostServiceTestCase(unittest.TestCase):
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
         port = -1
         tags = self._generate_valid_tags()
-        host = HostService()
+        host = self._new_host_service()
         success = host.update(
             service='foo',
             ip_address='10.10.10.10',
@@ -114,7 +127,7 @@ class HostServiceTestCase(unittest.TestCase):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
         tags = self._generate_valid_tags()
-        host = HostService()
+        host = self._new_host_service()
         success = host.update(
             service='foo',
             ip_address='10.10.10.10',
@@ -132,7 +145,7 @@ class HostServiceTestCase(unittest.TestCase):
         save.return_value = Mock(spec=bool)
         get.return_value = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
         tags = {'invalid_az': 'foo', 'instance_id': 'bar', 'region': 'baz'}
-        host = HostService()
+        host = self._new_host_service()
         success = host.update(
             service='foo',
             ip_address='10.10.10.10',
@@ -175,7 +188,7 @@ class HostServiceTestCase(unittest.TestCase):
         service = 'foo'
         query.return_value = []
         expired.return_value = False
-        host = HostService()
+        host = self._new_host_service()
         hosts = host.list(service)
         expected = []
         assert hosts == expected
@@ -200,12 +213,12 @@ class HostServiceTestCase(unittest.TestCase):
             host1,
             host2
         ]
-        host = HostService()
+        host = self._new_host_service()
         hosts = host.list(service)
         expected = [
             {
                 'service': host1.service,
-                'last_check_in': str(host1.last_check_in),
+                'last_check_in': host1.last_check_in,
                 'ip_address': host1.ip_address,
                 'service_repo_name': host1.service_repo_name,
                 'port': host1.port,
@@ -214,7 +227,7 @@ class HostServiceTestCase(unittest.TestCase):
             },
             {
                 'service': host2.service,
-                'last_check_in': str(host2.last_check_in),
+                'last_check_in': host2.last_check_in,
                 'ip_address': host2.ip_address,
                 'service_repo_name': host2.service_repo_name,
                 'port': host2.port,
@@ -232,7 +245,7 @@ class HostServiceTestCase(unittest.TestCase):
         service_repo_name = 'bar'
         query.return_value = []
         expired.return_value = False
-        host = HostService()
+        host = self._new_host_service()
         hosts = host.list_by_service_repo_name(service_repo_name)
         expected = []
         assert hosts == expected
@@ -257,12 +270,12 @@ class HostServiceTestCase(unittest.TestCase):
             host1,
             host2
         ]
-        host = HostService()
+        host = self._new_host_service()
         hosts = host.list_by_service_repo_name(service)
         expected = [
             {
                 'service': host1.service,
-                'last_check_in': str(host1.last_check_in),
+                'last_check_in': host1.last_check_in,
                 'ip_address': host1.ip_address,
                 'service_repo_name': host1.service_repo_name,
                 'port': host1.port,
@@ -271,7 +284,7 @@ class HostServiceTestCase(unittest.TestCase):
             },
             {
                 'service': host2.service,
-                'last_check_in': str(host2.last_check_in),
+                'last_check_in': host2.last_check_in,
                 'ip_address': host2.ip_address,
                 'service_repo_name': host2.service_repo_name,
                 'port': host2.port,
@@ -282,14 +295,15 @@ class HostServiceTestCase(unittest.TestCase):
         assert hosts == expected
 
     @patch('discovery.app.models.host.Host.get')
-    def test_set_tag(self, get):
-        host = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
+    @patch('discovery.app.models.host.Host.save')
+    def test_set_tag(self, save, get):
+        host = self._mock_host()
         host.save.return_value = Mock(spec=bool)
         host.tags = {}
 
         get.return_value = host
 
-        HostService().set_tag(
+        self._new_host_service().set_tag(
             service='foo',
             ip_address='10.10.10.10',
             tag_name='tagname',
@@ -307,16 +321,16 @@ class HostServiceTestCase(unittest.TestCase):
         batch_write.return_value = ctx_manager
         ctx_manager.__enter__.return_value = enter
 
-        host1 = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
+        host1 = self._mock_host()
         host1.save.return_value = Mock(spec=bool)
         host1.tags = {}
-        host2 = Mock(spec=['port', 'revision', 'last_check_in', 'tags', 'save'])
+        host2 = self._mock_host()
         host2.save.return_value = Mock(spec=bool)
         host2.tags = {}
 
         query.return_value = [host1, host2]
 
-        HostService().set_tag_all(
+        self._new_host_service().set_tag_all(
             service='foo',
             tag_name='tagname',
             tag_value='value'
@@ -324,7 +338,8 @@ class HostServiceTestCase(unittest.TestCase):
 
         assert host1.tags == {'tagname': 'value'}
         assert host2.tags == {'tagname': 'value'}
-        enter.save.assert_has_calls([call(host1), call(host2)])
+        host1.save.assert_called_once()
+        host2.save.assert_called_once()
 
     def noop(self):
         pass
@@ -334,7 +349,7 @@ class HostServiceTestCase(unittest.TestCase):
         # have query return hosts, some of which are expired
         # verify that the expired hosts are not returned
         service = 'foo'
-        host = HostService()
+        host = self._new_host_service()
         host1 = type('lamdbaobject', (object,), {})()
         host1.service = service
         host1.ip_address = '10.10.10.10'
@@ -362,7 +377,7 @@ class HostServiceTestCase(unittest.TestCase):
         expected = [
             {
                 'service': host2.service,
-                'last_check_in': str(host2.last_check_in),
+                'last_check_in': host2.last_check_in,
                 'ip_address': host2.ip_address,
                 'service_repo_name': host2.service_repo_name,
                 'port': host2.port,
