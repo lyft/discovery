@@ -75,7 +75,7 @@ class Registration(Resource):
         try:
             tags = json.loads(tags)
         except ValueError as ex:
-            logger.exception("Failed to parse tags json: {}. Exception: {} ".format(tags, ex))
+            logger.exception("Failed to parse tags json: {}. Exception: {}".format(tags, ex))
             return {"error": "Invalid json supplied in tags"}, 400
 
         host_service = host.HostService()
