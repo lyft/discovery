@@ -71,7 +71,12 @@ class Registration(Resource):
         revision = self._get_param('revision', None)
         last_check_in = datetime.utcnow()
         tags = self._get_param('tags', '{}')
-        tags = json.loads(tags)
+
+        try:
+            tags = json.loads(tags)
+        except ValueError as ex:
+            logger.exception("Failed to parse tags json: {}. Exception: {}".format(tags, ex))
+            return {"error": "Invalid json supplied in tags"}, 400
 
         host_service = host.HostService()
         success = host_service.update(service, ip_address, service_repo_name,
