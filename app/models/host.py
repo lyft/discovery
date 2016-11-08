@@ -15,12 +15,12 @@ class ServiceRepoNameIndex(GlobalSecondaryIndex):
 
 class Host(Model):
     """
-    A DynamoDB Server Host
+    A DynamoDB Server Host.
     """
     class Meta:
-        table_name = settings.get('DYNAMODB_TABLE_HOSTS')
-        if settings.get('APPLICATION_ENV') == 'development':
-            host = settings.get('DYNAMODB_URL')
+        table_name = settings.value.DYNAMODB_TABLE_HOSTS
+        if settings.value.APPLICATION_ENV == 'development':
+            host = settings.value.DYNAMODB_URL
 
     service = UnicodeAttribute(hash_key=True)
     ip_address = UnicodeAttribute(range_key=True)

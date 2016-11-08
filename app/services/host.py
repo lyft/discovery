@@ -59,7 +59,7 @@ class HostService():
             return cached_hosts
 
         hosts = self._sweep_expired_hosts(self.query_backend.query(service))
-        app.cache.set(service, hosts, settings.get('CACHE_TTL'))
+        app.cache.set(service, hosts, settings.value.CACHE_TTL)
         return hosts
 
     def list_by_service_repo_name(self, service_repo_name):
@@ -254,7 +254,7 @@ class HostService():
         # datetime.now(tz.tzutc()) and datetime.utcnow() do not return a tz-aware datetime
         # as a result, we use pytz to localize the timestamp to the UTC timezone
         time_elapsed = (now - last_check_in).total_seconds()
-        if time_elapsed > settings.get('HOST_TTL'):
+        if time_elapsed > settings.value.HOST_TTL:
             logging.info(
                 "Expiring host %s for service %s because %d seconds have elapsed since last_checkin"
                 % (host['tags']['instance_id'], host['service'], time_elapsed)

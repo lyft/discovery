@@ -20,9 +20,9 @@ class BackendSelector(object):
     @staticmethod
     def select():
         '''
-        Select backend storage based on the global settings
+        Select backend storage based on the global settings.
         '''
-        storage = settings.get('BACKEND_STORAGE')
+        storage = settings.value.BACKEND_STORAGE
 
         if (storage == 'DynamoDB'):
             return query.DynamoQueryBackend()
@@ -61,7 +61,7 @@ class Registration(Resource):
         hosts = host_service.list(service)
         response = {
             'service': service,
-            'env': settings.get('APPLICATION_ENV'),
+            'env': settings.value.APPLICATION_ENV,
             'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
@@ -131,7 +131,7 @@ class RepoRegistration(Resource):
         hosts = host_service.list_by_service_repo_name(service_repo_name)
         response = {
             'service_repo_name': service_repo_name,
-            'env': settings.get('APPLICATION_ENV'),
+            'env': settings.value.APPLICATION_ENV,
             'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
