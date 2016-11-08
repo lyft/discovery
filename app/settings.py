@@ -1,6 +1,7 @@
 from os import getenv
 from collections import namedtuple
 
+
 defaults = {
     'APPLICATION_DIR': '/srv/service/current',
     # This is used for specific setup for development vs production.

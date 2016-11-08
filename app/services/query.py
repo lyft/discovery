@@ -251,9 +251,13 @@ class DynamoQueryBackend(QueryBackend):
                 batch.save(self._dict_to_pynamo_host(host))
         return True
 
-    # TODO is all of this pomp and circumstance really necessary to properly delete?
-    #      need to better understand dynamodb
     def delete(self, service, ip_address):
+        '''
+        Technically we should not have several entries for the given service and ip address.
+        But there is no guarantee that it must be the case. Here we verify that it's strictly
+        one registered service/ip.
+        '''
+
         statsd = get_stats('service.host')
         hosts = list(self._read_cursor(Host.query(service, ip_address__eq=ip_address)))
         if len(hosts) == 0:
