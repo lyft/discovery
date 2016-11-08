@@ -4,19 +4,19 @@ from collections import namedtuple
 
 defaults = {
     'APPLICATION_DIR': '/srv/service/current',
-    # This is used for specific setup for development vs production.
+    # This is used for specific setup in development vs production.
     'APPLICATION_ENV': 'development',
     'DEBUG': True,
     'LOG_LEVEL': 'DEBUG',
     'PORT': 80,
-    # Used only in case of DynamoDB backed.
+    # Used only in case of DynamoDB backend.
     'DYNAMODB_TABLE_HOSTS': '',
-    # Used only for development in case of DynamoDB backed running locally.
+    # Used only for development in case of DynamoDB backend running locally.
     'DYNAMODB_URL': '',
-    # Only applied when DynamoDB backed is used. Create sample DynamoDB table for testing.
+    # Only applied when DynamoDB backend is used. Create sample DynamoDB table for testing.
     'DYNAMODB_CREATE_TABLES_IN_APP': '',
     # Sweep host (remove from discovery service and backend storage)
-    # if the last heart beat was not performed in last HOST_TTL seconds.
+    # if the last heartbeat was not performed in last HOST_TTL seconds.
     'HOST_TTL': 600,  # 10 minutes.
     # Keep data cached in discovery service during CACHE_TTL seconds,
     # otherwise call backend storage for data.
