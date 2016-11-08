@@ -8,7 +8,7 @@ app = Flask(__name__, static_folder='public')
 app.config.from_object(settings)
 app.wsgi_app = ProxyFix(app.wsgi_app, num_proxies=1)
 api = restful.Api(app)
-app.cache = Cache(app, config={'CACHE_TYPE': settings.CACHE_TYPE})
+app.cache = Cache(app, config={'CACHE_TYPE': settings.get('CACHE_TYPE')})
 
 
 @app.route('/healthcheck')

@@ -8,10 +8,30 @@ from flask.ext.restful import Resource
 from ..stats import get_stats
 from .. import settings
 from ..services import host
+from ..services import query
 
 logger = logging.getLogger('resources.api')
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)s: %(levelname)s %(message)s')
+
+
+class BackendSelector(object):
+
+    @staticmethod
+    def select():
+        '''
+        Select backend storage based on the global settings
+        '''
+        storage = settings.get('BACKEND_STORAGE')
+
+        if (storage == 'DynamoDB'):
+            return query.DynamoQueryBackend()
+        elif (storage == 'InMemory'):
+            return query.MemoryQueryBackend()
+        elif (storage == 'InFile'):
+            return query.LocalFileQueryBackend()
+        else:
+            raise ValueError('Not supported backed: {}'.format(storage))
 
 
 class HostSerializer(object):
@@ -37,11 +57,11 @@ class Registration(Resource):
 
     def get(self, service):
         '''Return all the hosts registered for this service'''
-        host_service = host.HostService()
+        host_service = host.HostService(BackendSelector.select())
         hosts = host_service.list(service)
         response = {
             'service': service,
-            'env': settings.APPLICATION_ENV,
+            'env': settings.get('APPLICATION_ENV'),
             'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
@@ -78,7 +98,7 @@ class Registration(Resource):
             logger.exception("Failed to parse tags json: {}. Exception: {}".format(tags, ex))
             return {"error": "Invalid json supplied in tags"}, 400
 
-        host_service = host.HostService()
+        host_service = host.HostService(BackendSelector.select())
         success = host_service.update(service, ip_address, service_repo_name,
                                       port, revision, last_check_in, tags)
 
@@ -93,7 +113,7 @@ class Registration(Resource):
 
     def delete(self, service, ip_address):
         '''Delete a host from dynamo'''
-        host_service = host.HostService()
+        host_service = host.HostService(BackendSelector.select())
         success = host_service.delete(service, ip_address)
         response_code = 200 if success else 400
         return {}, response_code
@@ -107,11 +127,11 @@ class RepoRegistration(Resource):
 
     def get(self, service_repo_name):
         '''Return all the hosts that belong to the service_repo_name'''
-        host_service = host.HostService()
+        host_service = host.HostService(BackendSelector.select())
         hosts = host_service.list_by_service_repo_name(service_repo_name)
         response = {
             'service_repo_name': service_repo_name,
-            'env': settings.APPLICATION_ENV,
+            'env': settings.get('APPLICATION_ENV'),
             'hosts': HostSerializer.serialize(hosts)
         }
         return response, 200
@@ -133,7 +153,7 @@ class LoadBalancing(Resource):
             return {"error": ("Invalid load_balancing_weight. Supply an "
                               "integer between 1 and 100.")}, 400
 
-        host_service = host.HostService()
+        host_service = host.HostService(BackendSelector.select())
 
         if ip_address:
             if not host_service.set_tag(service, ip_address, 'load_balancing_weight', weight):
