@@ -31,7 +31,7 @@ class BackendSelector(object):
         elif (storage == 'InFile'):
             return query.LocalFileQueryBackend()
         else:
-            raise ValueError('Not supported backed: {}'.format(storage))
+            raise ValueError('Not supported backend storage: {}'.format(storage))
 
 
 class HostSerializer(object):
