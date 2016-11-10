@@ -19,33 +19,37 @@ class BackendSelector(object):
 
     @staticmethod
     def select():
-        '''
+        """
         Select backend storage based on the global settings.
-        '''
+        """
+
         storage = settings.value.BACKEND_STORAGE
 
-        if (storage == 'DynamoDB'):
+        if storage == 'DynamoDB':
             return query.DynamoQueryBackend()
-        elif (storage == 'InMemory'):
+        elif storage == 'InMemory':
             return query.MemoryQueryBackend()
-        elif (storage == 'InFile'):
+        elif storage == 'InFile':
             return query.LocalFileQueryBackend()
         else:
-            raise ValueError('Not supported backend storage: {}'.format(storage))
+            raise ValueError('Unknown backend storage type specified: {}'.format(storage))
+
+# Run this to make sure that BACKEND_STORAGE is of known type.
+BACKEND_STORAGE = BackendSelector.select()
 
 
 class HostSerializer(object):
 
     @staticmethod
     def serialize(hosts):
-        '''Makes host dictionary serializable
+        """Makes host dictionary serializable
 
         :param hosts: list of hosts, each host is defined by dict host info
         :type hosts: dict
 
         :returns: list of host info dictionaries
         :rtype: list of dict
-        '''
+        """
 
         for _host in hosts:
             _host['last_check_in'] = str(_host['last_check_in'])
@@ -56,8 +60,8 @@ class HostSerializer(object):
 class Registration(Resource):
 
     def get(self, service):
-        '''Return all the hosts registered for this service'''
-        host_service = host.HostService(BackendSelector.select())
+        """Return all the hosts registered for this service"""
+        host_service = host.HostService(BACKEND_STORAGE)
         hosts = host_service.list(service)
         response = {
             'service': service,
@@ -67,7 +71,7 @@ class Registration(Resource):
         return response, 200
 
     def post(self, service):
-        '''Update or add a service registration given the host information in this request'''
+        """Update or add a service registration given the host information in this request"""
         ip_address = self._get_param('ip', None)
         if not ip_address and self._get_param('auto_ip', None):
             # Discovery ELB is the single proxy, take last ip in route
@@ -98,7 +102,7 @@ class Registration(Resource):
             logger.exception("Failed to parse tags json: {}. Exception: {}".format(tags, ex))
             return {"error": "Invalid json supplied in tags"}, 400
 
-        host_service = host.HostService(BackendSelector.select())
+        host_service = host.HostService(BACKEND_STORAGE)
         success = host_service.update(service, ip_address, service_repo_name,
                                       port, revision, last_check_in, tags)
 
@@ -112,8 +116,8 @@ class Registration(Resource):
         return {}, response_code
 
     def delete(self, service, ip_address):
-        '''Delete a host from dynamo'''
-        host_service = host.HostService(BackendSelector.select())
+        """Delete a host from dynamo"""
+        host_service = host.HostService(BACKEND_STORAGE)
         success = host_service.delete(service, ip_address)
         response_code = 200 if success else 400
         return {}, response_code
@@ -126,8 +130,8 @@ class Registration(Resource):
 class RepoRegistration(Resource):
 
     def get(self, service_repo_name):
-        '''Return all the hosts that belong to the service_repo_name'''
-        host_service = host.HostService(BackendSelector.select())
+        """Return all the hosts that belong to the service_repo_name"""
+        host_service = host.HostService(BACKEND_STORAGE)
         hosts = host_service.list_by_service_repo_name(service_repo_name)
         response = {
             'service_repo_name': service_repo_name,
@@ -153,7 +157,7 @@ class LoadBalancing(Resource):
             return {"error": ("Invalid load_balancing_weight. Supply an "
                               "integer between 1 and 100.")}, 400
 
-        host_service = host.HostService(BackendSelector.select())
+        host_service = host.HostService(BACKEND_STORAGE)
 
         if ip_address:
             if not host_service.set_tag(service, ip_address, 'load_balancing_weight', weight):
