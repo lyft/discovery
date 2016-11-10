@@ -17,6 +17,7 @@ class Host(Model):
     """
     A DynamoDB Server Host.
     """
+
     class Meta:
         table_name = settings.value.DYNAMODB_TABLE_HOSTS
         if settings.value.APPLICATION_ENV == 'development':

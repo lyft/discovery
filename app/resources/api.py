@@ -61,6 +61,7 @@ class Registration(Resource):
 
     def get(self, service):
         """Return all the hosts registered for this service"""
+
         host_service = host.HostService(BACKEND_STORAGE)
         hosts = host_service.list(service)
         response = {
@@ -72,6 +73,7 @@ class Registration(Resource):
 
     def post(self, service):
         """Update or add a service registration given the host information in this request"""
+
         ip_address = self._get_param('ip', None)
         if not ip_address and self._get_param('auto_ip', None):
             # Discovery ELB is the single proxy, take last ip in route
@@ -117,13 +119,15 @@ class Registration(Resource):
 
     def delete(self, service, ip_address):
         """Delete a host from dynamo"""
+
         host_service = host.HostService(BACKEND_STORAGE)
         success = host_service.delete(service, ip_address)
         response_code = 200 if success else 400
         return {}, response_code
 
     def _get_param(self, param, default=None):
-        '''Return the request parameter.  Returns default if the param was not found'''
+        """Return the request parameter.  Returns default if the param was not found"""
+
         return request.form[param] if param in request.form else default
 
 
@@ -131,6 +135,7 @@ class RepoRegistration(Resource):
 
     def get(self, service_repo_name):
         """Return all the hosts that belong to the service_repo_name"""
+
         host_service = host.HostService(BACKEND_STORAGE)
         hosts = host_service.list_by_service_repo_name(service_repo_name)
         response = {
