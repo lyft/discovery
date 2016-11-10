@@ -1,39 +1,46 @@
 #discovery
 
 This service provides a REST interface for querying for the list of hosts that belong to a given service in microservice infrastructure.
-Host information is written to and read from Dynamo. This project relies on the following libraries:
+Host information is written to and read from backend store (DynamoDB by default). This project relies on the following libraries:
 * Flask (web-framework)
 * Flask-Cache (for caching and reusing results for GET requests)
 * Pynamodb (for reading/writing DynamoDB data)
 
 ##API
 ###GET /v1/registration/:service
-Returns environment, list of hosts for :service and service itself.
+Returns metadata for the given :service.
 
+URL:
+:service
+  *(required, string)* Name of the service metadata is queried for.
+
+Response:
 ```json
 {
-    "env": "production",
+    "env": "...",
     "hosts": [
         {
-            "ip_address": "10.0.30.2",
-            "last_check_in": "2016-11-10 05:19:20.044732+00:00",
+            "ip_address": "...",
+            "last_check_in": "...",
             "port": 9211,
-            "revision": "7ac0a3742a4b2805100e1c567c442bd2f9086080",
-            "service": "service_name",
-            "service_repo_name": "repository",
+            "revision": "...",
+            "service": "...",
+            "service_repo_name": "...",
             "tags": {
-                "az": "us-east-1d",
-                "base_revision": "f601d8ee3efdd1a916bdfd3ef58f2e3c8ce36df0",
+                "az": "...",
+                "base_revision": "...",
                 "canary": true,
-                "instance_id": "i-97175481",
-                "onebox_name": null,
-                "region": "us-east-1"
+                "instance_id": "...",
+                "onebox_name": "...",
+                "region": "..."
             }
         }
     ],
-    "service": "service_name"
+    "service": "..."
 }
 ```
+
+Describe all of the above.
 
 ###GET /v1/registration/repo/:service_repo_name
 Returns the list of hosts for :service_repo_name (query based on secondary index, for example, DynamoDB GSI).
