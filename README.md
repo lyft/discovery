@@ -50,19 +50,19 @@ Format is the same as [above](#get-v1registrationservice)
 Used to register a host with a service.
 
 Url:
-:service
-  *(required, string)* Service for which operation is performed.
+  :service
+    *(required, string)* Service for which operation is performed.
 
 Request params:
 The list of required parameters is as follows:
-  ip
-    *(required, string)* ip address of the host.
-  port
-    *(required, integer)* port on which the host expects connections.
-  revision
-    *(required, string)* SHA of the revision the service is currently running.
-  tags
-    *(required, object)* JSON in the following format
+    ip
+      *(required, string)* ip address of the host.
+    port
+      *(required, integer)* port on which the host expects connections.
+    revision
+      *(required, string)* SHA of the revision the service is currently running.
+    tags
+      *(required, object)* JSON in the following format
 
 ```json
   {
