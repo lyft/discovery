@@ -34,8 +34,7 @@ On successful response, response body will be in the following json format:
         "revision": "...",
         "service": "...",
         "service_repo_name": "...",
-        "tags": {
-        }
+        "tags": {}
     }
     ```
   * ip_address
@@ -51,7 +50,7 @@ On successful response, response body will be in the following json format:
   * service_repo_name
     * *(required, string)* service repo, used for selecting hosts based on the service_repo.
   * tags
-    * *(required, object)* see tags here.
+    * *(required, object)* see tags [here](#tags-json).
 * service
   * *(required, string)* service name.
 
@@ -60,13 +59,12 @@ Returns list of hosts for `:service_repo_name` (query based on secondary index, 
 Format is the same as [query based on service](#get-v1registrationservice).
 
 ### POST /v1/registration/:service
-Used to register a host with a service.
+Registers a host with a service.
 
 * service
   * *(required, string)* Service for which operation is performed.
 
 Request params:
-The list of required parameters is as follows:
 * ip
   * *(required, string)* ip address of the host.
 * port
@@ -74,13 +72,13 @@ The list of required parameters is as follows:
 * revision
   * *(required, string)* SHA of the revision the service is currently running.
 * tags
-  * *(required, object)* JSON in the following format.
+  * *(required, object)* JSON in the following [format](#tags-json).
 
 ### DELETE /v1/registration/:service/:ip_address
 Deletes the host for the given `service` and `ip_address`.
 
 ### POST /v1/loadbalancing/:service/:ip_address
-Update the weight of hosts for load balancing purposes.
+Updates the weight of hosts for load balancing purposes.
 
 * service
   * *(required, string)* Service name for which weight is updated.
@@ -114,7 +112,7 @@ Request params:
 * canary
   * *(optional, boolean)* Set to true if host is a canary instance.
 * load_balancing_weight:
-  * *(optional, integer)* Used by Envoy for weighted routing. Values must be in a range of [1;100].
+  * *(optional, integer)* Used by Envoy for weighted routing. Values must be an integer between 1 and 100.
 
 ## Main Classes
 - [app/routes/api.py](https://github.com/lyft/discovery/blob/master/app/routes/api.py)
