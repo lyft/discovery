@@ -1,4 +1,4 @@
-#discovery
+# Discovery
 
 This service provides a REST interface for querying for the list of hosts that belong to a given service in microservice infrastructure.
 Host information is written to and read from backend store (DynamoDB by default). This project relies on the following libraries:
@@ -6,109 +6,117 @@ Host information is written to and read from backend store (DynamoDB by default)
 * Flask-Cache (for caching and reusing results for GET requests)
 * Pynamodb (for reading/writing DynamoDB data)
 
-##API
-###GET /v1/registration/:service
-Returns metadata for the given :service.
+## API
+### GET /v1/registration/:service
+Returns metadata for the given `:service`.
 
-URL:
-:service
-  *(required, string)* Name of the service metadata is queried for.
+* service
+  * *(required, string)* name of the service metadata is queried for.
 
-Response:
+On successful response, response body will be in the following json format:
 ```json
 {
     "env": "...",
-    "hosts": [
-        {
-            "ip_address": "...",
-            "last_check_in": "...",
-            "port": 9211,
-            "revision": "...",
-            "service": "...",
-            "service_repo_name": "...",
-            "tags": {
-                "az": "...",
-                "base_revision": "...",
-                "canary": true,
-                "instance_id": "...",
-                "onebox_name": "...",
-                "region": "..."
-            }
-        }
-    ],
+    "hosts": [],
     "service": "..."
 }
 ```
+* env
+  * *(required, string)* environment for the given service, e.g., development or production.
+* hosts
+  * *(required, object)* list of hosts each of which is in the following json format:
 
-Describe all of the above.
+    ```json
+    {
+        "ip_address": "...",
+        "last_check_in": "...",
+        "port": 9211,
+        "revision": "...",
+        "service": "...",
+        "service_repo_name": "...",
+        "tags": {
+        }
+    }
+    ```
+  * ip_address
+    * *(required, string)* ip address of the host.
+  * last_check_in
+    * *(required, datetime)* heartbeat, last time host registered with discovery service.
+  * port
+    * *(required, integer)* port on which the host expects connections, Envoy will connect to this port.
+  * revision
+    * *(required, string)* service SHA running on the host.
+  * service
+    * *(required, string)* service name.
+  * service_repo_name
+    * *(required, string)* service repo, used for selecting hosts based on the service_repo.
+  * tags
+    * *(required, object)* see tags here.
+* service
+  * *(required, string)* service name.
 
-###GET /v1/registration/repo/:service_repo_name
-Returns the list of hosts for :service_repo_name (query based on secondary index, for example, DynamoDB GSI).
-Format is the same as [above](#get-v1registrationservice)
+### GET /v1/registration/repo/:service_repo_name
+Returns list of hosts for `:service_repo_name` (query based on secondary index, for example, DynamoDB GSI).
+Format is the same as [query based on service](#get-v1registrationservice).
 
-###POST /v1/registration/:service
+### POST /v1/registration/:service
 Used to register a host with a service.
 
-Url:
-  :service
-    *(required, string)* Service for which operation is performed.
+* service
+  * *(required, string)* Service for which operation is performed.
 
 Request params:
 The list of required parameters is as follows:
-    ip
-      *(required, string)* ip address of the host.
-    port
-      *(required, integer)* port on which the host expects connections.
-    revision
-      *(required, string)* SHA of the revision the service is currently running.
-    tags
-      *(required, object)* JSON in the following format
+* ip
+  * *(required, string)* ip address of the host.
+* port
+  * *(required, integer)* port on which the host expects connections, Envoy will connect to this port.
+* revision
+  * *(required, string)* SHA of the revision the service is currently running.
+* tags
+  * *(required, object)* JSON in the following format.
 
-```json
-  {
-     "az": "us-east-1a",
-     "region": "us-east-1",
-     "instance_id": "i-934342",
-     "canary": "true",
-     "load_balancing_weight": "3"
-  }
-```
+### DELETE /v1/registration/:service/:ip_address
+Deletes the host for the given `service` and `ip_address`.
 
-az
-  *(required, string)* AWS availability zone that the host is running in. You
-  can provide arbitrary but the same value for all hosts if zone aware stats/routing
-  is not required.
+### POST /v1/loadbalancing/:service/:ip_address
+Update the weight of hosts for load balancing purposes.
 
-region
-    *(required, string)* AWS region that the host is running in.
-
-instance_id
-  *(required, string)* AWS instance_id of the host.
-
-canary
-  *(optional, boolean)* Set to true if host is a canary instance.
-
-load_balancing_weight:
-  *(optional, integer)* Used by Envoy for weighted routing. Values must be in a range of [1;100].
-
-###DELETE /v1/registration/:service/:ip_address
-Deletes the host for the given :service and :ip_address
-
-###POST /v1/loadbalancing/:service/:ip_address
-Used to update the weight of hosts for load balancing purposes.
-
-Url:
-:service
-  *(required, string)* Service name for which weight is updated.
-:ip_address
-  *(optional, string)* IP address of the host for which weight is updated.
+* service
+  * *(required, string)* Service name for which weight is updated.
+* ip_address
+  * *(optional, string)* IP address of the host for which weight is updated.
   If not given, *all* hosts for the given service will have their weights updated.
 
 Request params:
-load_balancing_weight
-  *(required, integer)* Host weight, an integer between 1 and 100.
+* load_balancing_weight
+  * *(required, integer)* Host weight, an integer between 1 and 100.
 
-##Main Classes
+#### Tags Json
+```json
+  {
+     "az": "...",
+     "region": "...",
+     "instance_id": "...",
+     "canary": true,
+     "load_balancing_weight": 3
+  }
+```
+
+* az
+  * *(required, string)* AWS availability zone that the host is running in. You
+  can provide arbitrary but the same value for all hosts if zone aware stats/routing
+  is not required.
+* region
+  * *(required, string)* AWS region that the host is running in.
+* instance_id
+  * *(required, string)* AWS instance_id of the host.
+* canary
+  * *(optional, boolean)* Set to true if host is a canary instance.
+* load_balancing_weight:
+  * *(optional, integer)* Used by Envoy for weighted routing. Values must be in a range of [1;100].
+
+## Main Classes
 - [app/routes/api.py](https://github.com/lyft/discovery/blob/master/app/routes/api.py)
  - defines the HTTP routes for service registration
 - [app/resources/api.py](https://github.com/lyft/discovery/blob/master/app/resources/api.py)
@@ -118,6 +126,6 @@ load_balancing_weight
 - [app/models/host.py](https://github.com/lyft/discovery/blob/master/app/models/host.py)
  - The pynamo model for service registration information for a host
 
-##Unit Testing
+## Unit Testing
 *Note* currently it's not working on public repository without tweaking (there is an opened issue for this)
 To run all unit tests, run `make test_unit`.
