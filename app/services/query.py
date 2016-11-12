@@ -10,14 +10,15 @@ from ..models.host import Host
 
 class QueryBackend(object):
     __metaclass__ = abc.ABCMeta
-    '''A storage backend that can store and retrieve host data.
+    """A storage backend that can store and retrieve host data.
 
     This is modeled off of the dynamodb python API, but made more
     general so users not on Amazon can use discovery.
-    '''
+    """
+
     @abc.abstractmethod
     def query(self, service):
-        '''Returns a generator of host dicts for the given service.
+        """Returns a generator of host dicts for the given service.
 
         Note that this will NOT deal with how timing out entries -- that is
         a concern of the caller.
@@ -28,12 +29,13 @@ class QueryBackend(object):
 
         :returns: hosts associated with this service
         :rtype: list(dict)
-        '''
+        """
+
         pass
 
     @abc.abstractmethod
     def query_secondary_index(self, service_repo_name):
-        '''For backends that support secondary indices, allows more efficient querying.
+        """For backends that support secondary indices, allows more efficient querying.
 
         :param service_repo_name: service_repo_name to retrieve associated hosts for
 
@@ -41,12 +43,13 @@ class QueryBackend(object):
 
         :returns: hosts associated with this service_repo_name
         :rtype: list(dict)
-        '''
+        """
+
         pass
 
     @abc.abstractmethod
     def get(self, service, ip_address):
-        '''Fetches the single host associated with the given service and ip_address
+        """Fetches the single host associated with the given service and ip_address
 
         :param service: the service of the host to get
         :param ip_address: the ip_address of the host to get
@@ -56,12 +59,13 @@ class QueryBackend(object):
 
         :returns: a single host if one exists, None otherwise
         :rtype: dict
-        '''
+        """
+
         pass
 
     @abc.abstractmethod
     def put(self, host):
-        '''Attempts to store the given host
+        """Attempts to store the given host
 
         :param host: host entry to store
 
@@ -69,12 +73,13 @@ class QueryBackend(object):
 
         :returns: True if put successful, False otherwise
         :rtype: bool
-        '''
+        """
+
         pass
 
     @abc.abstractmethod
     def delete(self, service, ip_address):
-        '''Deletes the given host for the given service/ip_address
+        """Deletes the given host for the given service/ip_address
 
         :param service: the service of the host to delete
         :param ip_address: the ip_address of the host to delete
@@ -84,7 +89,8 @@ class QueryBackend(object):
 
         :returns: True if delete successful, False otherwise
         :rtype: bool
-        '''
+        """
+
         pass
 
     def batch_put(self, hosts):
@@ -110,7 +116,8 @@ class MemoryQueryBackend(QueryBackend):
         self.data = {}
 
     def _list_all(self):
-        '''A generator over every host that has been stored.'''
+        """A generator over every host that has been stored."""
+
         for service in self.data.keys():
             for r in self.query(service):
                 yield r
@@ -127,7 +134,7 @@ class MemoryQueryBackend(QueryBackend):
             yield _host
 
     # TODO this can certainly be made faster, but I don't know if that's
-    #      really necessary...
+    # really necessary...
     def query_secondary_index(self, service_repo_name):
         for host in self._list_all():
             if host['service_repo_name'] == service_repo_name:
@@ -186,7 +193,8 @@ class LocalFileQueryBackend(QueryBackend):
             self.backend.data = pickle.load(open(self.file))
 
     def _save(self):
-        '''Saves the data information to local file.'''
+        """Saves the data information to local file."""
+
         pickle.dump(self.backend.data, open(self.file, 'w'))
 
     def query(self, service):
@@ -231,7 +239,7 @@ class DynamoQueryBackend(QueryBackend):
         self._dict_to_pynamo_host(host).save()
 
     def batch_put(self, hosts):
-        '''
+        """
         Note! Batched writes in pynamo are NOT ATOMIC. Batch writes are
         done in groups of 25 with pynamo handling retries for partial failures
         in a batch. It's possible that retries can be exhausted and we could
@@ -243,7 +251,7 @@ class DynamoQueryBackend(QueryBackend):
         we're putting the whole host object rather than just updating an
         individual field. This should be OK in practice as the time frame is
         short and the next host update will return things to normal.
-        '''
+        """
 
         # TODO need to look at the exceptions dynamo can throw here, catch, return False
         with Host.batch_write() as batch:
@@ -251,9 +259,13 @@ class DynamoQueryBackend(QueryBackend):
                 batch.save(self._dict_to_pynamo_host(host))
         return True
 
-    # TODO is all of this pomp and circumstance really necessary to properly delete?
-    #      need to better understand dynamodb
     def delete(self, service, ip_address):
+        """
+        Technically we should not have several entries for the given service and ip address.
+        But there is no guarantee that it must be the case. Here we verify that it's strictly
+        one registered service/ip.
+        """
+
         statsd = get_stats('service.host')
         hosts = list(self._read_cursor(Host.query(service, ip_address__eq=ip_address)))
         if len(hosts) == 0:
@@ -273,7 +285,7 @@ class DynamoQueryBackend(QueryBackend):
             return True
 
     def _read_cursor(self, cursor):
-        '''Converts a pynamo cursor into a generator.
+        """Converts a pynamo cursor into a generator.
 
         :param cursor: pynamo cursor
 
@@ -281,12 +293,13 @@ class DynamoQueryBackend(QueryBackend):
 
         :returns: generator based on the cursor
         :retype: generator(dict)
-        '''
+        """
+
         for host in cursor:
             yield self._pynamo_host_to_dict(host)
 
     def _pynamo_host_to_dict(self, host):
-        '''Converts a pynamo host into a dict.
+        """Converts a pynamo host into a dict.
 
         :param host: pynamo host
 
@@ -294,7 +307,8 @@ class DynamoQueryBackend(QueryBackend):
 
         :returns: dictionary with host info
         :rtype: dict
-        '''
+        """
+
         _host = {}
         _host['service'] = host.service
         _host['ip_address'] = host.ip_address
@@ -306,7 +320,7 @@ class DynamoQueryBackend(QueryBackend):
         return _host
 
     def _dict_to_pynamo_host(self, host):
-        '''Converts a dict to a pynamo host.
+        """Converts a dict to a pynamo host.
 
         Note that if any keys are missing, there will be an error.
 
@@ -316,7 +330,8 @@ class DynamoQueryBackend(QueryBackend):
 
         :returns: pynamo Host
         :rtype: Host
-        '''
+        """
+
         return Host(service=host['service'],
                     ip_address=host['ip_address'],
                     service_repo_name=host['service_repo_name'],

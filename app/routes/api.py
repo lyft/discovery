@@ -1,7 +1,6 @@
 from .. import api
 from ..resources.api import Registration, RepoRegistration, LoadBalancing
 
-# Add your resources here
 api.add_resource(Registration,
                  '/v1/registration/<service>',
                  '/v1/registration/<service>/<ip_address>')
