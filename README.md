@@ -13,7 +13,7 @@ Returns metadata for the given `:service`.
 * service
   * *(required, string)* name of the service metadata is queried for.
 
-On successful response, response body will be in the following json format:
+On successful response, response body will be in the following JSON format:
 ```json
 {
     "env": "...",
@@ -22,9 +22,10 @@ On successful response, response body will be in the following json format:
 }
 ```
 * env
-  * *(required, string)* environment for the given service, e.g., development or production.
+  * *(required, string)* environment discovery service runs in, e.g., development or production.
 * hosts
-  * *(required, object)* list of hosts each of which is in the following json format:
+  * *(required, object)* list of non expired hosts (hosts that last checked in to discovery service in the last HOST_TTL period).
+  Each host is in the following JSON format:
 
     ```json
     {
@@ -40,7 +41,7 @@ On successful response, response body will be in the following json format:
   * ip_address
     * *(required, string)* ip address of the host.
   * last_check_in
-    * *(required, datetime)* heartbeat, last time host registered with discovery service.
+    * *(required, string)* heartbeat timestamp converted to string, last time host registered with discovery service.
   * port
     * *(required, integer)* port on which the host expects connections, Envoy will connect to this port.
   * revision
@@ -48,18 +49,18 @@ On successful response, response body will be in the following json format:
   * service
     * *(required, string)* service name.
   * service_repo_name
-    * *(required, string)* service repo, used for selecting hosts based on the service_repo.
+    * *(required, string)* service repo, used for selecting hosts based on the service_repo (can be empty if not set).
   * tags
     * *(required, object)* see tags [here](#tags-json).
 * service
   * *(required, string)* service name.
 
 ### GET /v1/registration/repo/:service_repo_name
-Returns list of hosts for `:service_repo_name` (query based on secondary index, for example, DynamoDB GSI).
+Returns list of non expired hosts for `:service_repo_name` (query based on secondary index, for example, DynamoDB GSI).
 Format is the same as [query based on service](#get-v1registrationservice).
 
 ### POST /v1/registration/:service
-Registers a host with a service.
+Registers a host with a service. Response body does not contain any data.
 
 * service
   * *(required, string)* Service for which operation is performed.
@@ -67,6 +68,8 @@ Registers a host with a service.
 Request params:
 * ip
   * *(required, string)* ip address of the host.
+* service_repo_name
+  * *(optional, string)* service repository name, can be used for quick search.
 * port
   * *(required, integer)* port on which the host expects connections, Envoy will connect to this port.
 * revision
@@ -75,7 +78,13 @@ Request params:
   * *(required, object)* JSON in the following [format](#tags-json).
 
 ### DELETE /v1/registration/:service/:ip_address
-Deletes the host for the given `service` and `ip_address`.
+Deletes the host for the given `service` with `ip_address`.
+Returns response code 400 if no `service`/`ip_address` entity exists.
+
+* service
+  * *(required, string)* name of the service metadata is queried for.
+* ip
+  * *(required, string)* ip address of the host.
 
 ### POST /v1/loadbalancing/:service/:ip_address
 Updates the weight of hosts for load balancing purposes.
@@ -90,7 +99,7 @@ Request params:
 * load_balancing_weight
   * *(required, integer)* Host weight, an integer between 1 and 100.
 
-#### Tags Json
+#### Tags JSON
 ```json
   {
      "az": "...",
@@ -104,15 +113,17 @@ Request params:
 * az
   * *(required, string)* AWS availability zone that the host is running in. You
   can provide arbitrary but the same value for all hosts if zone aware stats/routing
-  is not required.
+  is not required. If you use non AWS backend storage currently you have to provide `az`
+  anyway, you can use some fixed predefined value for all hosts.
 * region
   * *(required, string)* AWS region that the host is running in.
 * instance_id
   * *(required, string)* AWS instance_id of the host.
 * canary
-  * *(optional, boolean)* Set to true if host is a canary instance.
+  * *(optional, boolean)* Set to true if host is a canary instance, used by Envoy.
 * load_balancing_weight:
-  * *(optional, integer)* Used by Envoy for weighted routing. Values must be an integer between 1 and 100.
+  * *(optional, integer)* Load balancing weight is used by Envoy for weighted routing.
+  Values must be an integer between 1 and 100.
 
 ## Main Classes
 - [app/routes/api.py](https://github.com/lyft/discovery/blob/master/app/routes/api.py)
