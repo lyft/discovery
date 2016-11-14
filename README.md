@@ -6,6 +6,39 @@ Host information is written to and read from backend store (DynamoDB by default)
 * Flask-Cache (for caching and reusing results for GET requests)
 * Pynamodb (for reading/writing DynamoDB data)
 
+Also check [requirements.txt](https://github.com/lyft/discovery/blob/master/requirements.txt) for other dependencies.
+
+## Discovery service settings
+Discovery service settings are controlled by [environment variables](https://github.com/lyft/discovery/blob/master/app/settings.py).
+
+* HOST_TTL
+  * If the last heartbeat was not performed in the last HOST_TTL seconds, discovery service will remove host from backend storage. Default value is 600 (10 minutes).
+* CACHE_TTL
+  * Flask cache expiration in seconds, discovery calls BACKEND_STORAGE to fill the cache.
+  This cache is used for hosts retrieval by [service](#get-v1registrationservice) or [service repo](#get-v1registrationreposervice_repo_name).
+  Default value is 30 seconds.
+* BACKEND_STORAGE
+  * Type of the backend storage used in discovery service. Supported values are: DynamoDB, InMemory, InFile.
+  By default DynamoDB backend is used.
+* CACHE_TYPE
+  * Supported values 'simple' or 'null'. Default value is 'null' which effectively turn flask caching off.
+* APPLICATION_DIR
+  * Application directory.
+* APPLICATION_ENV
+  * Environment discovery service runs in, e.g., development or production. Default value is development.
+* DEBUG
+  * If debug mode is used. Default value is true.
+* LOG_LEVEL
+  * Set logging level. Default value is DEBUG.
+* PORT
+  * Port flask app using. Default value is 8080.
+* DYNAMODB_TABLE_HOSTS
+  * Used only in case of DynamoDB backend.
+* DYNAMODB_URL
+  * Used only for development in case of DynamoDB backend running locally.
+* DYNAMODB_CREATE_TABLES_IN_APP
+  * Used for creating DynamoDB table, useful only in case DynamoDB backend storage used.
+
 ## API
 ### GET /v1/registration/:service
 Returns metadata for the given `:service`.

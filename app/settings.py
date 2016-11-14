@@ -8,7 +8,7 @@ defaults = {
     'APPLICATION_ENV': 'development',
     'DEBUG': True,
     'LOG_LEVEL': 'DEBUG',
-    'PORT': 80,
+    'PORT': 8080,
     # Used only in case of DynamoDB backend.
     'DYNAMODB_TABLE_HOSTS': '',
     # Used only for development in case of DynamoDB backend running locally.
