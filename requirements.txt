@@ -54,6 +54,9 @@ blinker==1.4
 # Upstream url: http://gunicorn.org
 gunicorn==19.1.1
 
+gevent==1.0.1
+greenlet==0.4.4
+
 wsgiref==0.1.2
 boto==2.34.0
 
