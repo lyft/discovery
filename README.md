@@ -105,8 +105,8 @@ Request params:
      "az": "...",
      "region": "...",
      "instance_id": "...",
-     "canary": true,
-     "load_balancing_weight": 3
+     "canary": false,
+     "load_balancing_weight": 1
   }
 ```
 
