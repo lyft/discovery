@@ -294,11 +294,10 @@ class DynamoHostServiceTestCase(unittest.TestCase):
         ]
         assert hosts == expected
 
-    @patch('discovery.app.models.host.Host.get')
-    @patch('discovery.app.models.host.Host.save')
+    @patch('discovery.app.services.query.Host.get')
+    @patch('discovery.app.services.query.Host.save')
     def test_set_tag(self, save, get):
         host = self._mock_host()
-        host.save.return_value = Mock(spec=bool)
         host.tags = {}
 
         get.return_value = host
@@ -311,21 +310,14 @@ class DynamoHostServiceTestCase(unittest.TestCase):
         )
 
         assert host.tags == {'tagname': 'value'}
-        host.save.assert_called_once()
+        save.assert_called_once()
 
-    @patch('discovery.app.models.host.Host.batch_write')
-    @patch('discovery.app.models.host.Host.query')
+    @patch('discovery.app.services.query.Host.batch_write')
+    @patch('discovery.app.services.query.Host.query')
     def test_set_tag_all(self, query, batch_write):
-        enter = MagicMock()
-        ctx_manager = MagicMock()
-        batch_write.return_value = ctx_manager
-        ctx_manager.__enter__.return_value = enter
-
         host1 = self._mock_host()
-        host1.save.return_value = Mock(spec=bool)
         host1.tags = {}
         host2 = self._mock_host()
-        host2.save.return_value = Mock(spec=bool)
         host2.tags = {}
 
         query.return_value = [host1, host2]
@@ -338,8 +330,7 @@ class DynamoHostServiceTestCase(unittest.TestCase):
 
         assert host1.tags == {'tagname': 'value'}
         assert host2.tags == {'tagname': 'value'}
-        host1.save.assert_called_once()
-        host2.save.assert_called_once()
+        batch_write.assert_called_once()
 
     def noop(self):
         pass
