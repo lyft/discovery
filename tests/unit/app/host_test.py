@@ -1,5 +1,5 @@
 import unittest
-from mock import patch, Mock, MagicMock
+from mock import patch, Mock
 from flask import Flask
 from flask.ext.cache import Cache
 from datetime import datetime, timedelta
