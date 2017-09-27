@@ -127,7 +127,7 @@ class MemoryQueryBackend(QueryBackend):
         if ip_map is None:
             return
 
-        for ip_address, host_dict in ip_map.iteritems():
+        for ip_address, host_dict in ip_map.items():
             _host = host_dict.copy()
             _host['service'] = service
             _host['ip_address'] = ip_address
