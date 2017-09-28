@@ -249,12 +249,10 @@ class HostService():
         """
 
         last_check_in = host['last_check_in']
-        now = datetime.datetime.now()
+        now = pytz.utc.localize(datetime.datetime.utcnow())
 
         if not last_check_in.tzinfo:
             last_check_in = pytz.utc.localize(last_check_in)
-        if not now.tzinfo:
-            now = pytz.utc.localize(now)
         # datetime.now(tz.tzutc()) and datetime.utcnow() do not return a tz-aware datetime
         # as a result, we use pytz to localize the timestamp to the UTC timezone
         time_elapsed = (now - last_check_in).total_seconds()

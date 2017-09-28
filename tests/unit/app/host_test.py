@@ -3,6 +3,7 @@ from mock import patch, Mock
 from flask import Flask
 from flask.ext.cache import Cache
 from datetime import datetime, timedelta
+import os
 from discovery.app.services import host
 
 
@@ -377,3 +378,27 @@ class DynamoHostServiceTestCase(unittest.TestCase):
             }
         ]
         assert hosts == expected
+
+    def test_is_expired(self):
+        host = self._new_host_service()
+        host1 = {
+            # datetime.utcnow() is used to set last_check_in at registration
+            # time so that's what we need to test with
+            'last_check_in':  datetime.utcnow() - timedelta(minutes=11),
+
+            # _is_expired method references these host fields...
+            'service': 'my_service',
+            'tags': {
+                'instance_id': 'my_id',
+            },
+        }
+
+        _environ = dict(os.environ)
+        try:
+            # set TZ so the results don't depend on local machine's timezone
+            os.environ['TZ'] = 'America/Chicago'
+            assert host._is_expired(host1) == True
+        finally:
+            # restore os.environ after test
+            os.environ.clear()
+            os.environ.update(_environ)
