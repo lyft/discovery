@@ -397,7 +397,7 @@ class DynamoHostServiceTestCase(unittest.TestCase):
         try:
             # set TZ so the results don't depend on local machine's timezone
             os.environ['TZ'] = 'America/Chicago'
-            assert host._is_expired(host1) == True
+            assert host._is_expired(host1) is True
         finally:
             # restore os.environ after test
             os.environ.clear()
