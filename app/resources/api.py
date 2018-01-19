@@ -1,6 +1,9 @@
 import json
 import logging
 from datetime import datetime
+import sys
+import os
+import importlib
 
 from flask import request
 from flask.ext.restful import Resource
@@ -31,6 +34,23 @@ class BackendSelector(object):
             return query.MemoryQueryBackend()
         elif storage == 'InFile':
             return query.LocalFileQueryBackend()
+        elif storage:
+            # import the query backend starting from the plugins folder 
+            query_location_from_plugins = 'plugins.' + storage + '.app.services.query'
+            backend_name = storage + 'QueryBackend'
+
+            try:
+                query_module = importlib.import_module(query_location_from_plugins)
+            except ImportError:
+                raise ImportError("Verify {} is a valid path".format(query_location_from_plugins))
+
+            try:
+                query_backend = getattr(query_module, backend_name)()
+            except AttributeError:
+                raise AttributeError("Verify {} has classname {}".format(query_module, backend_name))
+
+            return query_backend
+
         else:
             raise ValueError('Unknown backend storage type specified: {}'.format(storage))
 
