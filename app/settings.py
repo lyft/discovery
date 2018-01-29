@@ -22,7 +22,7 @@ defaults = {
     # otherwise call backend storage for data.
     'CACHE_TTL': 30,  # 30 seconds.
     # Supported values: DynamoDB, InMemory, InFile.
-    'BACKEND_STORAGE': 'HBase',
+    'BACKEND_STORAGE': 'DynamoDB',
     # Flask cache type, null means no caching.
     'CACHE_TYPE': 'null'
 }
