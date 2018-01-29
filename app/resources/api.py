@@ -34,7 +34,7 @@ class BackendSelector(object):
             return query.MemoryQueryBackend()
         elif storage == 'InFile':
             return query.LocalFileQueryBackend()
-        elif storage:
+        elif 'plugins' in os.listdir(os.getcwd()):
             # import the query backend starting from the plugins folder 
             query_location_from_plugins = 'plugins.' + storage + '.app.services.query'
             backend_name = storage + 'QueryBackend'
