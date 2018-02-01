@@ -48,14 +48,14 @@ class QueryBackend(object):
         pass
 
     @abc.abstractmethod
-    def get(self, service, ip_address):
+    def get(self, service, endpoint):
         """Fetches the single host associated with the given service and ip_address
 
         :param service: the service of the host to get
-        :param ip_address: the ip_address of the host to get
+        :param endpoint: the ip_address of the host to get
 
         :type service: str
-        :type ip_address: str
+        :type endpoint: str
 
         :returns: a single host if one exists, None otherwise
         :rtype: dict
@@ -140,18 +140,18 @@ class MemoryQueryBackend(QueryBackend):
             if host['service_repo_name'] == service_repo_name:
                 yield host
 
-    def get(self, service, ip_address):
+    def get(self, service, endpoint):
         ip_map = self.data.get(service)
         if ip_map is None:
             return None
 
-        host_dict = ip_map.get(ip_address)
+        host_dict = ip_map.get(endpoint)
         if host_dict is None:
             return None
 
         host = host_dict.copy()
         host['service'] = service
-        host['ip_address'] = ip_address
+        host['ip_address'] = endpoint
         return host
 
     def put(self, host):
@@ -203,8 +203,8 @@ class LocalFileQueryBackend(QueryBackend):
     def query_secondary_index(self, service_repo_name):
         return self.backend.query_secondary_index(service_repo_name)
 
-    def get(self, service, ip_address):
-        return self.backend.get(service, ip_address)
+    def get(self, service, endpoint):
+        return self.backend.get(service, endpoint)
 
     def put(self, host):
         try:
@@ -226,9 +226,9 @@ class DynamoQueryBackend(QueryBackend):
     def query_secondary_index(self, service_repo_name):
         return self._read_cursor(Host.service_repo_name_index.query(service_repo_name))
 
-    def get(self, service, ip_address):
+    def get(self, service, endpoint):
         try:
-            host = Host.get(service, ip_address)
+            host = Host.get(service, endpoint)
             if host is None:
                 return None
             return self._pynamo_host_to_dict(host)
@@ -333,6 +333,7 @@ class DynamoQueryBackend(QueryBackend):
         """
 
         return Host(service=host['service'],
+                    endpoint=host['endpoint'],
                     ip_address=host['ip_address'],
                     service_repo_name=host['service_repo_name'],
                     port=host['port'],

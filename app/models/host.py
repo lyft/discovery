@@ -24,9 +24,10 @@ class Host(Model):
             host = settings.value.DYNAMODB_URL
 
     service = UnicodeAttribute(hash_key=True)
-    ip_address = UnicodeAttribute(range_key=True)
+    endpoint = UnicodeAttribute(range_key=True)
     service_repo_name_index = ServiceRepoNameIndex()
     service_repo_name = UnicodeAttribute(null=True)
+    ip_address = UnicodeAttribute()
     port = NumberAttribute()
     last_check_in = UTCDateTimeAttribute()
     revision = UnicodeAttribute()
