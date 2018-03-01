@@ -1,6 +1,9 @@
 import json
 import logging
 from datetime import datetime
+import sys
+import os
+import importlib
 
 from flask import request
 from flask.ext.restful import Resource
@@ -17,25 +20,59 @@ logging.basicConfig(level=logging.DEBUG,
 
 class BackendSelector(object):
 
-    @staticmethod
-    def select():
+    def __init__(self):
+        self.storage = self.get_storage()
+        
+    def get_storage(self):
+        return settings.value.BACKEND_STORAGE
+
+    def plugins_exist(self):
+        return 'plugins' in os.listdir(os.getcwd())
+
+    def assemble_plugin_backend_location(self):
+        return 'plugins.{}.app.services.query'.format(self.storage) 
+
+    def assemble_plugin_backend_class_name(self):
+        return '{}QueryBackend'.format(self.storage)
+
+    def get_query_plugin_from_location_and_name(self, backend_location, backend_name):
+        try:
+            query_module = importlib.import_module(backend_location)
+        except ImportError:
+            raise ImportError("Verify {} is a valid path".format(backend_location))
+
+        try:
+            query_backend = getattr(query_module, backend_name)()
+        except AttributeError:
+            raise AttributeError("Verify {} has classname {}".format(query_module, backend_name))
+
+        return query_backend
+
+    def select(self):
         """
         Select backend storage based on the global settings.
         """
 
-        storage = settings.value.BACKEND_STORAGE
-
-        if storage == 'DynamoDB':
+        if self.storage == 'DynamoDB':
             return query.DynamoQueryBackend()
-        elif storage == 'InMemory':
+        elif self.storage == 'InMemory':
             return query.MemoryQueryBackend()
-        elif storage == 'InFile':
+        elif self.storage == 'InFile':
             return query.LocalFileQueryBackend()
+        elif self.plugins_exist():
+            # import the query backend starting from the plugins folder
+            query_location_from_plugins = self.assemble_plugin_backend_location()
+            backend_name = self.assemble_plugin_backend_class_name()
+            query_backend = self.get_query_plugin_from_location_and_name(
+                    query_location_from_plugins, backend_name)
+
+            return query_backend
+
         else:
-            raise ValueError('Unknown backend storage type specified: {}'.format(storage))
+            raise ValueError('Unknown backend storage type specified: {}'.format(self.storage))
 
 # Run this to make sure that BACKEND_STORAGE is of known type.
-BACKEND_STORAGE = BackendSelector.select()
+BACKEND_STORAGE = BackendSelector().select()
 
 
 class HostSerializer(object):

@@ -1,10 +1,11 @@
 import unittest
 from flask import Flask
 from flask.ext.cache import Cache
+import discovery
 from discovery.app.models import Host
-from discovery.app.resources.api import RepoRegistration, Registration
-from mock import patch
-from mock import Mock
+from discovery.app.resources.api import RepoRegistration, Registration, BackendSelector
+from discovery.app import settings
+from mock import patch, Mock, PropertyMock
 
 
 class ApiResourceTestCase(unittest.TestCase):
@@ -184,3 +185,55 @@ class ApiResourceTestCase(unittest.TestCase):
 
         assert response_code == 200
         assert response == {}
+
+
+class BackendSelectorTestCase(unittest.TestCase):
+
+    @patch.object(BackendSelector, 'get_storage')
+    def test_backend_selector_select_method_returns_DynamoDB_storage(self, mock_get_storage):
+        expected_backend_class = discovery.app.services.query.DynamoQueryBackend
+        mock_get_storage.return_value = 'DynamoDB'
+        backend_class_instance = BackendSelector().select()
+        self.assertTrue(isinstance(backend_class_instance, expected_backend_class))
+
+    @patch.object(BackendSelector, 'get_storage')
+    def test_backend_selector_select_method_returns_InMemory_storage(self, mock_get_storage):
+        expected_backend_class = discovery.app.services.query.MemoryQueryBackend
+        mock_get_storage.return_value = 'InMemory'
+        backend_class_instance = BackendSelector().select()
+        self.assertTrue(isinstance(backend_class_instance, expected_backend_class))
+
+    @patch.object(BackendSelector, 'get_storage')
+    def test_backend_selector_select_method_returns_InFile_storage(self, mock_get_storage):
+        expected_backend_class = discovery.app.services.query.LocalFileQueryBackend
+        mock_get_storage.return_value = 'InFile'
+        backend_class_instance = BackendSelector().select()
+        self.assertTrue(isinstance(backend_class_instance, expected_backend_class))
+
+    @patch.object(BackendSelector, 'get_storage')
+    def test_assemble_plugin_backend_location_returns_expected_string(self, mock_get_storage):
+        expected = 'plugins.HBase.app.services.query'
+        mock_get_storage.return_value = 'HBase'
+        actual = BackendSelector().assemble_plugin_backend_location()
+        self.assertEqual(expected, actual)
+
+    @patch.object(BackendSelector, 'get_storage')
+    def test_assemble_plugin_backend_class_name_returns_expected_string(self, mock_get_storage):
+        expected = 'HBaseQueryBackend'
+        mock_get_storage.return_value = 'HBase'
+        actual = BackendSelector().assemble_plugin_backend_class_name()
+        self.assertEqual(expected, actual)
+        
+    @patch.object(BackendSelector, 'plugins_exist')
+    @patch.object(BackendSelector, 'get_query_plugin_from_location_and_name')
+    @patch.object(BackendSelector, 'assemble_plugin_backend_class_name')
+    @patch.object(BackendSelector, 'assemble_plugin_backend_location')
+    @patch.object(BackendSelector, 'get_storage')
+    def test_get_query_plugin_from_location_and_name_called_with_expected_args(self, 
+            mock_get_storage, mock_assemble_location, mock_assemble_class_name, mock_get_query_plugin, mock_plugins_exist):
+        mock_get_storage.return_value = 'HBase'
+        mock_assemble_location.return_value = 'plugins.HBase.app.services.query'
+        mock_assemble_class_name.return_value = 'HBaseQueryBackend'
+        mock_plugins_exist.return_value = True
+        actual_call = BackendSelector().select()
+        mock_get_query_plugin.assert_called_with(mock_assemble_location.return_value, mock_assemble_class_name.return_value)
