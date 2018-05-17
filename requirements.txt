@@ -1,7 +1,7 @@
 # pytest: helps you write better programs
 # License: MIT
 # Upstream url: http://pytest.org/
-pytest==2.9.0
+pytest==3.5.0
 
 # pytest-mock: Thin-wrapper around the mock package for easier use with py.test
 # License: MIT
@@ -19,7 +19,7 @@ Werkzeug==0.9.4
 
 python-dateutil==2.4.2
 
-six==1.9.0
+six==1.11.0
 
 # Python HTTP for Humans.
 # License: Apache Software License
