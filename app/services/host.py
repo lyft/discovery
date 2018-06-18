@@ -1,12 +1,12 @@
 import datetime
 import logging
 import pytz
-import query
 import socket
 
 from flask import current_app as app
 from flask import request
 
+from . import query
 from ..stats import get_stats
 from .. import settings
 
