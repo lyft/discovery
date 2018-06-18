@@ -1,5 +1,5 @@
 from .. import settings
-from host import Host
+from .host import Host
 
 
 if settings.value.DYNAMODB_CREATE_TABLES_IN_APP:

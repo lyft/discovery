@@ -33,7 +33,7 @@ for name, value in defaults.items():
         values[name] = bool(getenv(name, value))
     elif isinstance(value, int):
         values[name] = int(getenv(name, value))
-    elif isinstance(value, basestring):
+    elif isinstance(value, str):
         values[name] = getenv(name, value)
 
 value = namedtuple('Settings', values.keys())(**values)
