@@ -4,8 +4,7 @@ from flask.ext.cache import Cache
 import discovery
 from discovery.app.models import Host
 from discovery.app.resources.api import RepoRegistration, Registration, BackendSelector
-from discovery.app import settings
-from mock import patch, Mock, PropertyMock
+from mock import patch, Mock
 
 
 class ApiResourceTestCase(unittest.TestCase):
@@ -223,17 +222,25 @@ class BackendSelectorTestCase(unittest.TestCase):
         mock_get_storage.return_value = 'HBase'
         actual = BackendSelector().assemble_plugin_backend_class_name()
         self.assertEqual(expected, actual)
-        
+
     @patch.object(BackendSelector, 'plugins_exist')
     @patch.object(BackendSelector, 'get_query_plugin_from_location_and_name')
     @patch.object(BackendSelector, 'assemble_plugin_backend_class_name')
     @patch.object(BackendSelector, 'assemble_plugin_backend_location')
     @patch.object(BackendSelector, 'get_storage')
-    def test_get_query_plugin_from_location_and_name_called_with_expected_args(self, 
-            mock_get_storage, mock_assemble_location, mock_assemble_class_name, mock_get_query_plugin, mock_plugins_exist):
+    def test_get_query_plugin_from_location_and_name_called_with_expected_args(
+            self,
+            mock_get_storage,
+            mock_assemble_location,
+            mock_assemble_class_name,
+            mock_get_query_plugin,
+            mock_plugins_exist,
+    ):
         mock_get_storage.return_value = 'HBase'
         mock_assemble_location.return_value = 'plugins.HBase.app.services.query'
         mock_assemble_class_name.return_value = 'HBaseQueryBackend'
         mock_plugins_exist.return_value = True
-        actual_call = BackendSelector().select()
-        mock_get_query_plugin.assert_called_with(mock_assemble_location.return_value, mock_assemble_class_name.return_value)
+        BackendSelector().select()
+        mock_get_query_plugin.assert_called_with(
+            mock_assemble_location.return_value, mock_assemble_class_name.return_value,
+        )

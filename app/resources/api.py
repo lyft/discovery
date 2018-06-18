@@ -1,7 +1,6 @@
 import json
 import logging
 from datetime import datetime
-import sys
 import os
 import importlib
 
@@ -22,7 +21,7 @@ class BackendSelector(object):
 
     def __init__(self):
         self.storage = self.get_storage()
-        
+
     def get_storage(self):
         return settings.value.BACKEND_STORAGE
 
@@ -30,7 +29,7 @@ class BackendSelector(object):
         return 'plugins' in os.listdir(os.getcwd())
 
     def assemble_plugin_backend_location(self):
-        return 'plugins.{}.app.services.query'.format(self.storage) 
+        return 'plugins.{}.app.services.query'.format(self.storage)
 
     def assemble_plugin_backend_class_name(self):
         return '{}QueryBackend'.format(self.storage)
@@ -64,12 +63,13 @@ class BackendSelector(object):
             query_location_from_plugins = self.assemble_plugin_backend_location()
             backend_name = self.assemble_plugin_backend_class_name()
             query_backend = self.get_query_plugin_from_location_and_name(
-                    query_location_from_plugins, backend_name)
+                query_location_from_plugins, backend_name)
 
             return query_backend
 
         else:
             raise ValueError('Unknown backend storage type specified: {}'.format(self.storage))
+
 
 # Run this to make sure that BACKEND_STORAGE is of known type.
 BACKEND_STORAGE = BackendSelector().select()
