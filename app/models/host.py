@@ -12,9 +12,6 @@ class CustomPynamoSession(requests.Session):
         self.mount('http://', adapters.HTTPAdapter(pool_maxsize=settings.value.CONNECTION_POOL_SIZE))
 
 
-session_cls = CustomPynamoSession
-
-
 class ServiceRepoNameIndex(GlobalSecondaryIndex):
     class Meta:
         projection = AllProjection()
@@ -33,6 +30,7 @@ class Host(Model):
         table_name = settings.value.DYNAMODB_TABLE_HOSTS
         if settings.value.APPLICATION_ENV == 'development':
             host = settings.value.DYNAMODB_URL
+        session_cls = CustomPynamoSession
 
     service = UnicodeAttribute(hash_key=True)
     ip_address = UnicodeAttribute(range_key=True)
