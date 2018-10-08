@@ -10,6 +10,7 @@ class CustomPynamoSession(requests.Session):
     def __init__(self):
         super(CustomPynamoSession, self).__init__()
         self.mount('http://', adapters.HTTPAdapter(pool_maxsize=settings.value.CONNECTION_POOL_SIZE))
+        self.mount('https://', adapters.HTTPAdapter(pool_maxsize=settings.value.CONNECTION_POOL_SIZE))
 
 
 class ServiceRepoNameIndex(GlobalSecondaryIndex):
