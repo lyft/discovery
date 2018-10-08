@@ -25,7 +25,6 @@ defaults = {
     'BACKEND_STORAGE': 'DynamoDB',
     # Flask cache type, null means no caching.
     'CACHE_TYPE': 'null',
-    # Set the connection pool size
     'CONNECTION_POOL_SIZE': 100
 }
 
