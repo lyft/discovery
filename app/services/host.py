@@ -106,7 +106,7 @@ class HostService():
             return False
         if not ip_address:
             logging.error(
-                "Update: Missing required parameter - ip_address. url=%s params=%s" % (
+                "Update: Missing required parameter - ip_address. url={} params={}".format(
                     request.url, request.form
                 )
             )
@@ -121,7 +121,7 @@ class HostService():
             logging.error("Update: Missing required parameter - last_check_in")
             return False
 
-        if(type(last_check_in).__name__ != 'datetime'):
+        if (type(last_check_in).__name__ != 'datetime'):
             return False
 
         # validate that port is a positive number

@@ -186,16 +186,17 @@ class MemoryQueryBackend(QueryBackend):
 
 
 class LocalFileQueryBackend(QueryBackend):
-    def __init__(self, file=tempfile.TemporaryFile().name):
+    def __init__(self, file=tempfile.NamedTemporaryFile().name):
         self.backend = MemoryQueryBackend()
         self.file = file
         if os.path.isfile(self.file) and os.stat(self.file).st_size > 0:
-            self.backend.data = pickle.load(open(self.file))
+            with open(self.file, 'rb') as f:
+                self.backend.data = pickle.load(f)
 
     def _save(self):
         """Saves the data information to local file."""
-
-        pickle.dump(self.backend.data, open(self.file, 'w'))
+        with open(self.file, 'wb') as f:
+            pickle.dump(self.backend.data, f)
 
     def query(self, service):
         return self.backend.query(service)
@@ -270,7 +271,7 @@ class DynamoQueryBackend(QueryBackend):
         hosts = list(self._read_cursor(Host.query(service, ip_address__eq=ip_address)))
         if len(hosts) == 0:
             logging.error(
-                "Delete called for nonexistent host: service=%s ip=%s" % (service, ip_address)
+                "Delete called for nonexistent host: service={} ip={}".format(service, ip_address)
             )
             return False
         elif len(hosts) > 1:
