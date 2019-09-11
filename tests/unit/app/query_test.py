@@ -59,12 +59,15 @@ class QueryBackendTestCase(object):
         host2['service'] = host2_service
         self.assertEqual(host2, host2_get)
 
-        secondary_query = sorted(query.query_secondary_index(host1['service_repo_name']))
+        secondary_query = sorted(
+            query.query_secondary_index(host1['service_repo_name']),
+            key=lambda dct: sorted(dct.items()),
+        )
         self.assertEqual([host1, host2], secondary_query)
 
         query.delete(host2['service'], host2['ip_address'])
 
-        secondary_query = sorted(query.query_secondary_index(host1['service_repo_name']))
+        secondary_query = list(query.query_secondary_index(host1['service_repo_name']))
         self.assertEqual([host1], secondary_query)
 
         self.assertIsNone(query.get(host2['service'], host2['ip_address']))
