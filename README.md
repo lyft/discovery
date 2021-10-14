@@ -1,3 +1,5 @@
+⚠️ This repository has been archived and is no longer accepting contributions ⚠️
+
 # Discovery
 
 This service provides a REST interface for querying for the list of hosts that belong to a given service in microservice infrastructure.
