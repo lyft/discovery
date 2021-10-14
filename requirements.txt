@@ -24,7 +24,7 @@ six==1.11.0
 # Python HTTP for Humans.
 # License: Apache Software License
 # Upstream url: http://python-requests.org
-requests==2.2.1
+requests==2.20.0
 
 # Flask
 # License: BSD
