@@ -52,7 +52,7 @@ blinker==1.4
 # WSGI HTTP Server for UNIX
 # License: MIT
 # Upstream url: http://gunicorn.org
-gunicorn==19.1.1
+gunicorn==19.5.0
 
 gevent==1.3.3
 greenlet==0.4.13
